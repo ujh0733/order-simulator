@@ -21,8 +21,12 @@ private const val JDBC_URL =
 private const val DB_USER = "app"
 private const val DB_PASSWORD = "app"
 
-private const val USER_COUNT = 500_000
+private const val DEFAULT_TARGET_USER_COUNT = 9_500_000
 private const val CHUNK_SIZE = 2_000
+private const val PHONE_SPACE = 100_000_000L
+
+// 2·5와 서로소라 (cursor + STRIDE) % PHONE_SPACE가 전체 번호 공간을 겹침 없이 한 바퀴 돈다.
+private const val PHONE_STRIDE = 7_654_321L
 
 private val SURNAMES = listOf(
     "김", "이", "박", "최", "정", "강", "조", "윤", "장", "임",
@@ -40,7 +44,10 @@ private val ROAD_NAMES = listOf(
 private val START_EPOCH_SECOND = LocalDateTime.of(2020, 1, 1, 0, 0).toEpochSecond(ZoneOffset.of("+09:00"))
 private val END_EPOCH_SECOND = LocalDateTime.now().toEpochSecond(ZoneOffset.of("+09:00"))
 
-fun main() {
+/** 인자로 목표 총 유저 수를 받는다(예: `--args="1000000"`). 생략하면 [DEFAULT_TARGET_USER_COUNT]. */
+fun main(args: Array<String>) {
+    val targetUserCount = parseTargetUserCount(args)
+
     Class.forName("com.mysql.cj.jdbc.Driver")
     DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASSWORD).use { connection ->
         connection.autoCommit = false
@@ -48,27 +55,74 @@ fun main() {
         val guRegions = fetchGuRegions(connection)
         check(guRegions.isNotEmpty()) { "GU 지역 데이터가 없습니다. regions 마이그레이션(V2)이 적용됐는지 확인하세요." }
 
-        println("자치구 ${guRegions.size}개 확인. 유저 ${USER_COUNT}명 생성을 시작합니다.")
+        val existingUsers = countUsers(connection)
+        val usersToCreate = targetUserCount - existingUsers
+        if (usersToCreate <= 0) {
+            println("이미 유저 ${existingUsers}명이 있어 목표(${targetUserCount}명) 이상입니다. 생성할 것이 없습니다.")
+            return
+        }
 
-        val usedPhones = HashSet<String>(USER_COUNT * 2)
+        println("자치구 ${guRegions.size}개 확인. 기존 유저 ${existingUsers}명 -> 목표 ${targetUserCount}명, ${usersToCreate}명 추가 생성을 시작합니다.")
+
+        val phones = PhoneGenerator(fetchExistingPhones(connection))
         var totalUsers = 0
         var totalAddresses = 0
 
-        var remaining = USER_COUNT
+        var remaining = usersToCreate
         while (remaining > 0) {
             val chunk = minOf(CHUNK_SIZE, remaining)
-            val userIds = insertUserChunk(connection, chunk, usedPhones)
+            val userIds = insertUserChunk(connection, chunk, phones)
             totalAddresses += insertAddressChunk(connection, userIds, guRegions)
             connection.commit()
 
             totalUsers += chunk
             remaining -= chunk
-            if (totalUsers % 50_000 == 0 || remaining == 0) {
+            if (totalUsers % 500_000 == 0 || remaining == 0) {
                 println("진행: 유저 ${totalUsers}명 / 주소 ${totalAddresses}건 생성 완료")
             }
         }
 
-        println("완료: 유저 ${totalUsers}명, 주소 ${totalAddresses}건 생성")
+        println("완료: 유저 ${totalUsers}명, 주소 ${totalAddresses}건 추가 생성 (총 ${existingUsers + totalUsers}명)")
+    }
+}
+
+private fun parseTargetUserCount(args: Array<String>): Int {
+    val raw = args.firstOrNull() ?: return DEFAULT_TARGET_USER_COUNT
+    val parsed = raw.replace(",", "").replace("_", "").toIntOrNull()
+    if (parsed == null || parsed <= 0) {
+        System.err.println("목표 유저 수는 1 이상의 정수여야 합니다: '$raw'")
+        kotlin.system.exitProcess(1)
+    }
+    return parsed
+}
+
+private fun countUsers(connection: Connection): Int =
+    connection.prepareStatement("SELECT COUNT(*) FROM users").use { stmt ->
+        stmt.executeQuery().use { rs -> if (rs.next()) rs.getInt(1) else 0 }
+    }
+
+private fun fetchExistingPhones(connection: Connection): Set<String> {
+    val result = HashSet<String>()
+    connection.prepareStatement("SELECT phone FROM users").use { stmt ->
+        stmt.executeQuery().use { rs ->
+            while (rs.next()) {
+                result.add(rs.getString(1))
+            }
+        }
+    }
+    return result
+}
+
+/** 이미 있는 번호는 건너뛰고, 이번 실행 안에서는 번호가 절대 겹치지 않는다(Set 없이 유니크 보장). */
+private class PhoneGenerator(private val existing: Set<String>) {
+    private var cursor = Random.nextLong(PHONE_SPACE)
+
+    fun next(): String {
+        while (true) {
+            cursor = (cursor + PHONE_STRIDE) % PHONE_SPACE
+            val candidate = "010%08d".format(cursor)
+            if (candidate !in existing) return candidate
+        }
     }
 }
 
@@ -85,13 +139,13 @@ private fun fetchGuRegions(connection: Connection): List<Pair<Long, String>> {
 }
 
 /** 유저 chunk건을 insert하고, 생성된 내부 PK 목록을 반환한다(주소 생성 시 FK로 사용). */
-private fun insertUserChunk(connection: Connection, chunk: Int, usedPhones: MutableSet<String>): List<Long> {
+private fun insertUserChunk(connection: Connection, chunk: Int, phones: PhoneGenerator): List<Long> {
     val sql = "INSERT INTO users (user_id, name, phone, email, created_at) VALUES (?, ?, ?, ?, ?)"
     connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS).use { stmt ->
         repeat(chunk) {
             stmt.setString(1, UUID.randomUUID().toString())
             stmt.setString(2, randomName())
-            stmt.setString(3, randomUniquePhone(usedPhones))
+            stmt.setString(3, phones.next())
             stmt.setNull(4, Types.VARCHAR)
             stmt.setTimestamp(5, Timestamp.valueOf(randomDateTimeSince2020()))
             stmt.addBatch()
@@ -162,13 +216,6 @@ private fun fetchUserCreatedAt(connection: Connection, userIds: List<Long>): Map
 }
 
 private fun randomName(): String = SURNAMES.random() + GIVEN_NAMES.random()
-
-private fun randomUniquePhone(used: MutableSet<String>): String {
-    while (true) {
-        val candidate = "010%08d".format(Random.nextInt(0, 100_000_000))
-        if (used.add(candidate)) return candidate
-    }
-}
 
 private fun randomDateTimeSince2020(): LocalDateTime {
     val randomEpochSecond = Random.nextLong(START_EPOCH_SECOND, END_EPOCH_SECOND)

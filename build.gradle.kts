@@ -89,7 +89,7 @@ tasks.register<JavaExec>("collectSeoulRestaurants") {
 
 tasks.register<JavaExec>("seedDummyUsers") {
 	group = "data"
-	description = "더미 고객/주소 데이터를 대량 생성합니다(기본 50만 명)."
+	description = "더미 고객/주소 데이터를 목표 총 유저 수가 될 때까지 대량 생성합니다(기본 950만 명, --args=N 으로 변경, 부족분만 추가)."
 	classpath = sourceSets["main"].runtimeClasspath
 	mainClass.set("dev.junghun.ordersimulator.seed.DummyUserSeederKt")
 }
