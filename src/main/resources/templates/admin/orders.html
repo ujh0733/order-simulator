@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>주문 내역 - 배달 플랫폼 관리자</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+<body>
+<header class="topbar">
+    <h1>배달 플랫폼 관리자</h1>
+    <nav class="main-menu">
+        <a th:href="@{/admin}">대시보드</a>
+        <a th:href="@{/admin/orders}" class="active">주문 내역</a>
+    </nav>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit" class="btn-secondary">로그아웃</button>
+    </form>
+</header>
+
+<main class="orders-page">
+    <section class="card">
+        <div class="panel-header">
+            <h2>주문 내역</h2>
+            <div class="filters">
+                <input type="text" id="filter-keyword" placeholder="주문번호/주문자/전화번호/가게명 검색">
+                <select id="filter-status">
+                    <option value="">전체 상태</option>
+                    <option value="RECEIVED">접수</option>
+                    <option value="COOKING">조리 중</option>
+                    <option value="DISPATCHED">배차</option>
+                    <option value="COMPLETED">완료</option>
+                </select>
+                <input type="date" id="filter-from">
+                <span>~</span>
+                <input type="date" id="filter-to">
+                <button id="filter-search-btn" class="btn-primary">조회</button>
+            </div>
+        </div>
+
+        <table class="region-table">
+            <thead>
+            <tr>
+                <th>주문번호</th>
+                <th>주문자</th>
+                <th>가게</th>
+                <th>배달지역</th>
+                <th>라이더</th>
+                <th>상태</th>
+                <th>예상배달(분)</th>
+                <th>주문시각</th>
+                <th>완료시각</th>
+            </tr>
+            </thead>
+            <tbody id="orders-table-body"></tbody>
+        </table>
+
+        <div class="pagination">
+            <button id="prev-page-btn" class="btn-secondary">이전</button>
+            <span id="page-info" class="page-info"></span>
+            <button id="next-page-btn" class="btn-secondary">다음</button>
+        </div>
+    </section>
+</main>
+
+<script th:src="@{/js/orders.js}"></script>
+</body>
+</html>
