@@ -1,0 +1,21 @@
+CREATE TABLE merchants (
+    id                    BIGINT         NOT NULL AUTO_INCREMENT,
+    region_id             BIGINT         NOT NULL,
+    management_no         VARCHAR(50)    NOT NULL,
+    name                  VARCHAR(200)   NOT NULL,
+    business_status_code  VARCHAR(10)    NULL,
+    business_status_name  VARCHAR(50)    NULL,
+    detail_status_name    VARCHAR(50)    NULL,
+    license_date          DATE           NULL,
+    close_date            DATE           NULL,
+    road_address          VARCHAR(300)   NULL,
+    lot_address           VARCHAR(300)   NULL,
+    phone                 VARCHAR(30)    NULL,
+    coord_x               DECIMAL(15, 6) NULL,
+    coord_y               DECIMAL(15, 6) NULL,
+    created_at            DATETIME       NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_merchants_management_no (management_no),
+    KEY idx_merchants_region_id (region_id),
+    CONSTRAINT fk_merchants_region FOREIGN KEY (region_id) REFERENCES regions (id)
+) ENGINE = InnoDB;

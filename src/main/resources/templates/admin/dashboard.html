@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>관리자 대시보드 - 배달 플랫폼</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+    <h1>배달 플랫폼 관리자</h1>
+    <nav class="main-menu">
+        <a th:href="@{/admin}" class="active">대시보드</a>
+        <a th:href="@{/admin/orders}">주문 내역</a>
+    </nav>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit" class="btn-secondary">로그아웃</button>
+    </form>
+</header>
+
+<main class="layout">
+    <section class="map-panel">
+        <div class="panel-header">
+            <h2>지역별 배달 건수</h2>
+
+            <nav class="region-menu">
+                <label for="sido-select">지역</label>
+                <select id="sido-select"></select>
+            </nav>
+
+            <div class="filters">
+                <select id="unit-select">
+                    <option value="DAY" selected>일</option>
+                    <option value="WEEK">주</option>
+                    <option value="MONTH">월</option>
+                    <option value="YEAR">년</option>
+                    <option value="CUSTOM">기간 설정</option>
+                </select>
+                <span id="custom-range" class="custom-range" style="display:none;">
+                    <input type="date" id="from-date">
+                    <span>~</span>
+                    <input type="date" id="to-date">
+                </span>
+                <button id="search-btn" class="btn-primary">조회</button>
+            </div>
+        </div>
+        <div id="map" class="map-container">
+            <div id="tooltip" class="tooltip"></div>
+        </div>
+        <p id="map-unavailable" class="hint" style="display:none;">
+            이 지역은 아직 지도 경계 데이터가 없어 목록으로만 확인할 수 있습니다.
+        </p>
+    </section>
+
+    <aside class="side-panel">
+        <div class="card">
+            <h3>주문 부하 생성기</h3>
+            <label for="load-count">생성할 주문 건수</label>
+            <input type="number" id="load-count" min="1" step="1" value="50000">
+            <label for="load-duration">소요 시간(분)</label>
+            <input type="number" id="load-duration" min="1" step="1" value="60">
+            <button id="load-generate-btn" class="btn-primary full-width">주문 생성 시작</button>
+            <div id="load-progress" class="progress-bar" style="display:none;">
+                <div id="load-progress-fill" class="progress-fill"></div>
+            </div>
+            <p id="sim-status" class="sim-status"></p>
+        </div>
+
+        <div class="card">
+            <h3>자치구 순위</h3>
+            <table class="region-table">
+                <thead>
+                <tr><th>지역</th><th>건수</th></tr>
+                </thead>
+                <tbody id="region-table-body"></tbody>
+            </table>
+        </div>
+    </aside>
+</main>
+
+<section class="pipeline-panel">
+    <div class="panel-header">
+        <h2>주문 처리 파이프라인</h2>
+    </div>
+    <div class="pipeline-stats">
+        <div class="pipeline-stat">
+            <span class="pipeline-stat-label">접수 대기</span>
+            <span class="pipeline-stat-value" id="stat-received">0</span>
+        </div>
+        <div class="pipeline-stat">
+            <span class="pipeline-stat-label">조리 중</span>
+            <span class="pipeline-stat-value" id="stat-cooking">0</span>
+        </div>
+        <div class="pipeline-stat">
+            <span class="pipeline-stat-label">배차(배달 중)</span>
+            <span class="pipeline-stat-value" id="stat-dispatched">0</span>
+        </div>
+        <div class="pipeline-stat">
+            <span class="pipeline-stat-label">완료</span>
+            <span class="pipeline-stat-value" id="stat-completed">0</span>
+        </div>
+        <div class="pipeline-stat rider">
+            <span class="pipeline-stat-label">라이더 가용</span>
+            <span class="pipeline-stat-value" id="stat-riders-available">0</span>
+        </div>
+        <div class="pipeline-stat rider">
+            <span class="pipeline-stat-label">라이더 운행 중</span>
+            <span class="pipeline-stat-value" id="stat-riders-busy">0</span>
+        </div>
+    </div>
+
+    <div class="pipeline-tables">
+        <div class="pipeline-table-col">
+            <h3 class="pipeline-events-title">최근 상태 전이</h3>
+            <table class="region-table">
+                <thead>
+                <tr><th>주문</th><th>가게</th><th>라이더</th><th>전이</th><th>시각</th></tr>
+                </thead>
+                <tbody id="pipeline-event-body"></tbody>
+            </table>
+        </div>
+        <div class="pipeline-table-col">
+            <h3 class="pipeline-events-title">배차 현황 (배송 중)</h3>
+            <table class="region-table">
+                <thead>
+                <tr><th>라이더</th><th>주문</th><th>가게</th><th>배달지역</th><th>배차 시각</th></tr>
+                </thead>
+                <tbody id="pipeline-dispatch-body"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<script th:src="@{/js/dashboard.js}"></script>
+</body>
+</html>

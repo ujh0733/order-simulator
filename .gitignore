@@ -4,6 +4,16 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+.env
+
+### 수집된 원본 데이터 ###
+/data/
+
+### Grafana/Prometheus (로컬에서 별도 작업 예정) ###
+/monitoring/
+
+### Claude Code ###
+.claude/
 
 ### STS ###
 .apt_generated
