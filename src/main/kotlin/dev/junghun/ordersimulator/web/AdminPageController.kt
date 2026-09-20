@@ -14,4 +14,7 @@ class AdminPageController {
 
     @GetMapping("/admin/orders")
     fun orders(): String = "admin/orders"
+
+    @GetMapping("/admin/merchants")
+    fun merchants(): String = "admin/merchants"
 }

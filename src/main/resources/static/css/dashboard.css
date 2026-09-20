@@ -102,7 +102,7 @@ body {
     display: flex;
     gap: 1.25rem;
     padding: 1.25rem;
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 .map-panel {
@@ -184,6 +184,29 @@ body {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    /* 내용 높이가 행 높이에 반영되지 않게 해서 지도 패널 높이에 맞춰 늘어나게 한다.
+       지도가 너무 낮아질 때(지도 데이터 없는 지역 등)를 대비해 최소 높이를 둔다. */
+    contain: size;
+    min-height: 560px;
+}
+
+.ranking-card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ranking-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.ranking-scroll .region-table thead th {
+    position: sticky;
+    top: 0;
+    background: #fff;
 }
 
 .card {
@@ -351,6 +374,62 @@ body {
 }
 
 .page-info {
+    font-size: 0.85rem;
+    color: #8a91a0;
+}
+
+.category-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    padding: 0.75rem 0 1rem;
+}
+
+.category-bar label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.category-bar select {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid #dfe2e8;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    max-width: 200px;
+}
+
+.category-bar .hint { margin: 0 0 0 auto; }
+
+.merchants-page .filters input[type="text"] { width: 260px; }
+
+.category-bar option.empty-option { color: #a3a9b6; }
+
+.empty-row td { border-bottom: none; }
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 0 1.5rem;
+    text-align: center;
+}
+
+.empty-state img { margin-bottom: 0.75rem; }
+
+.empty-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4a5163;
+}
+
+.empty-sub {
+    margin: 0.35rem 0 0;
     font-size: 0.85rem;
     color: #8a91a0;
 }

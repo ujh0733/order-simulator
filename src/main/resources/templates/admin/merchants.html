@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>가게 검색 - 배달 플랫폼 관리자</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+<body>
+<header class="topbar">
+    <h1>배달 플랫폼 관리자</h1>
+    <nav class="main-menu">
+        <a th:href="@{/admin}">대시보드</a>
+        <a th:href="@{/admin/orders}">주문 내역</a>
+        <a th:href="@{/admin/merchants}" class="active">가게 검색</a>
+    </nav>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit" class="btn-secondary">로그아웃</button>
+    </form>
+</header>
+
+<main class="orders-page merchants-page">
+    <section class="card">
+        <div class="panel-header">
+            <h2>가게 검색</h2>
+            <div class="filters">
+                <input type="text" id="filter-keyword" placeholder="가게명/주소/전화번호 검색">
+                <button id="filter-search-btn" class="btn-primary">조회</button>
+                <button id="filter-reset-btn" class="btn-secondary">초기화</button>
+            </div>
+        </div>
+
+        <div class="category-bar">
+            <label>시/도
+                <select id="filter-sido"><option value="">전체</option></select>
+            </label>
+            <label>시/군/구
+                <select id="filter-region" disabled><option value="">전체</option></select>
+            </label>
+            <label>영업상태
+                <select id="filter-status"><option value="">전체</option></select>
+            </label>
+            <label>조리시간
+                <select id="filter-cooking"><option value="">전체</option></select>
+            </label>
+            <span class="hint">카테고리의 ( ) 안 숫자는 조건과 무관한 전체 가게 기준 건수입니다.</span>
+        </div>
+
+        <p id="result-summary" class="sim-status"></p>
+
+        <table class="region-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>가게명</th>
+                <th>지역</th>
+                <th>영업상태</th>
+                <th>주소</th>
+                <th>전화번호</th>
+                <th>인허가일</th>
+                <th>조리시간(분)</th>
+                <th>동시조리</th>
+            </tr>
+            </thead>
+            <tbody id="merchants-table-body"></tbody>
+        </table>
+
+        <div class="pagination">
+            <button id="prev-page-btn" class="btn-secondary">이전</button>
+            <span id="page-info" class="page-info"></span>
+            <button id="next-page-btn" class="btn-secondary">다음</button>
+        </div>
+    </section>
+</main>
+
+<script th:src="@{/js/merchants.js}"></script>
+</body>
+</html>

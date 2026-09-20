@@ -14,6 +14,7 @@
     <nav class="main-menu">
         <a th:href="@{/admin}" class="active">대시보드</a>
         <a th:href="@{/admin/orders}">주문 내역</a>
+        <a th:href="@{/admin/merchants}">가게 검색</a>
     </nav>
     <form th:action="@{/logout}" method="post">
         <button type="submit" class="btn-secondary">로그아웃</button>
@@ -56,7 +57,7 @@
 
     <aside class="side-panel">
         <div class="card">
-            <h3>주문 부하 생성기</h3>
+            <h3>주문 생성기</h3>
             <label for="load-count">생성할 주문 건수</label>
             <input type="number" id="load-count" min="1" step="1" value="50000">
             <label for="load-duration">소요 시간(분)</label>
@@ -68,14 +69,16 @@
             <p id="sim-status" class="sim-status"></p>
         </div>
 
-        <div class="card">
+        <div class="card ranking-card">
             <h3>자치구 순위</h3>
-            <table class="region-table">
-                <thead>
-                <tr><th>지역</th><th>건수</th></tr>
-                </thead>
-                <tbody id="region-table-body"></tbody>
-            </table>
+            <div class="ranking-scroll">
+                <table class="region-table">
+                    <thead>
+                    <tr><th>지역</th><th>건수</th></tr>
+                    </thead>
+                    <tbody id="region-table-body"></tbody>
+                </table>
+            </div>
         </div>
     </aside>
 </main>
