@@ -63,6 +63,7 @@ class LoadGenerationService(
         val remaining = job.total - job.completed
         if (remaining <= 0) {
             job.running = false
+            job.endedAt = job.endedAt ?: LocalDateTime.now()
             return
         }
 

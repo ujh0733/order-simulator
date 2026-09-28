@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 interface LoadGenerationJobRepository : JpaRepository<LoadGenerationJob, Long> {
     /** 서버 시작 시 "재시작 전에 돌고 있던 작업이 있었는지" 확인용. */
@@ -19,7 +20,7 @@ interface LoadGenerationJobRepository : JpaRepository<LoadGenerationJob, Long> {
     @Query(
         """
         UPDATE LoadGenerationJob j
-        SET j.completed = :completed, j.running = :running, j.failedMessage = :failedMessage
+        SET j.completed = :completed, j.running = :running, j.failedMessage = :failedMessage, j.endedAt = :endedAt
         WHERE j.id = :id
         """
     )
@@ -28,5 +29,6 @@ interface LoadGenerationJobRepository : JpaRepository<LoadGenerationJob, Long> {
         @Param("completed") completed: Int,
         @Param("running") running: Boolean,
         @Param("failedMessage") failedMessage: String?,
+        @Param("endedAt") endedAt: LocalDateTime?,
     )
 }
