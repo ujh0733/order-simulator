@@ -5,6 +5,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
 
 /**
  * 예약된 offset(발생 예정 시각)을 확인해, 이미 지난 것들을 생성한다.
@@ -58,7 +59,10 @@ class LoadGenerationScheduler(
 
     private fun persistJobState() {
         val jobId = state.jobId ?: return
-        loadGenerationJobRepository.updateProgress(jobId, state.completed.get(), state.running, state.failedMessage)
+        // running이 false로 바뀌는 이 시점이 "실제로 끝난 시각"이다. 목표 시간(duration)을 넘겨서
+        // 끝났는지는 이 값과 started_at + duration_minutes를 비교하면 알 수 있다.
+        val endedAt = if (!state.running) LocalDateTime.now() else null
+        loadGenerationJobRepository.updateProgress(jobId, state.completed.get(), state.running, state.failedMessage, endedAt)
     }
 
     companion object {

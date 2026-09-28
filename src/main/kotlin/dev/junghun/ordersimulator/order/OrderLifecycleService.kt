@@ -44,8 +44,10 @@ class OrderLifecycleService(
         val order = orderRepository.findById(orderId).orElse(null) ?: return
         if (order.status != OrderStatus.COOKING) return
 
-        val rider = riderRepository.findRandomAvailable() ?: return
-        rider.status = RiderStatus.BUSY
+        val rider = riderRepository.findRandomAvailable() ?: riderRepository.findFirstAvailable() ?: return
+        // 고른 시점과 잡는 시점 사이에 다른 트랜잭션이 먼저 채갔을 수 있다(특히 tick()이 겹쳐 돌 때).
+        // "AVAILABLE일 때만 BUSY로" 원자적 UPDATE로 확정하고, 실패(0건)하면 이번 시도는 포기한다.
+        if (riderRepository.claimIfAvailable(rider.id!!) == 0) return
 
         order.rider = rider
         order.dispatchedAt = LocalDateTime.now()

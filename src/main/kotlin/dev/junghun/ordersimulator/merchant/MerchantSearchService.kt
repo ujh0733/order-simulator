@@ -24,6 +24,7 @@ data class MerchantItem(
     val licenseDate: LocalDate?,
     val cookingMinutes: Int,
     val maxConcurrentCooking: Int,
+    val orderCount: Long,
 )
 
 data class MerchantPage(
@@ -62,10 +63,14 @@ class MerchantSearchService(
 
         params.addValue("limit", safeSize)
         params.addValue("offset", safePage.toLong() * safeSize)
+        // 가게별 주문수는 지금은 orders를 매번 집계해서 구한다. 잘라낸 페이지(최대 100건)에 대해서만
+        // 가게당 서브쿼리 1번이라 지금 규모에서는 문제없다. 이후 느려지면 그때 merchants에 카운트
+        // 컬럼을 추가해서 갱신하는 방식으로 바꾼다.
         val content = jdbc.query(
             """
             SELECT m.id, m.name, p.name AS sido_name, r.name AS region_name, m.business_status_name,
-                   m.road_address, m.phone, m.license_date, m.cooking_minutes, m.max_concurrent_cooking
+                   m.road_address, m.phone, m.license_date, m.cooking_minutes, m.max_concurrent_cooking,
+                   (SELECT COUNT(*) FROM orders o WHERE o.merchant_id = m.id) AS order_count
             FROM (
                 SELECT * FROM merchants m $where ORDER BY m.id LIMIT :limit OFFSET :offset
             ) m
@@ -86,6 +91,7 @@ class MerchantSearchService(
                 licenseDate = rs.getDate("license_date")?.toLocalDate(),
                 cookingMinutes = rs.getInt("cooking_minutes"),
                 maxConcurrentCooking = rs.getInt("max_concurrent_cooking"),
+                orderCount = rs.getLong("order_count"),
             )
         }
 

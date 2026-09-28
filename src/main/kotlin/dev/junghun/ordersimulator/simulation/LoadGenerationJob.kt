@@ -31,6 +31,11 @@ class LoadGenerationJob(
     @Column(name = "started_at", nullable = false)
     val startedAt: LocalDateTime,
 
+    // 목표 시간(durationMinutes)을 못 지키고 늦게 끝날 수 있어서, 실제로 끝난 시각을 별도로 남긴다.
+    // 진행 중일 때는 null이고, running이 false가 되는 순간 채워진다.
+    @Column(name = "ended_at")
+    var endedAt: LocalDateTime? = null,
+
     @Column(nullable = false)
     var running: Boolean = true,
 

@@ -92,7 +92,7 @@
         const response = await fetch(`/api/merchants?${buildQuery(page)}`);
         if (seq !== requestSeq) return;
         if (!response.ok) {
-            tableBody.innerHTML = '<tr><td colspan="9">조회 중 오류가 발생했습니다.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="10">조회 중 오류가 발생했습니다.</td></tr>';
             return;
         }
         const data = await response.json();
@@ -103,7 +103,7 @@
             const msg = emptyMessage();
             tableBody.innerHTML = `
                 <tr class="empty-row">
-                    <td colspan="9">
+                    <td colspan="10">
                         <div class="empty-state">
                             <img src="/img/empty-store.svg" alt="" width="160" height="130">
                             <p class="empty-title">${esc(msg.title)}</p>
@@ -124,6 +124,7 @@
                         <td>${cell(m.licenseDate)}</td>
                         <td>${m.cookingMinutes}</td>
                         <td>${m.maxConcurrentCooking}</td>
+                        <td>${Number(m.orderCount).toLocaleString()}건</td>
                     </tr>
                 `)
                 .join('');
