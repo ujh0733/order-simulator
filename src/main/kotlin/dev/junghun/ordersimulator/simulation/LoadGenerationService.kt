@@ -1,5 +1,6 @@
 package dev.junghun.ordersimulator.simulation
 
+import dev.junghun.ordersimulator.address.RandomAddressPicker
 import dev.junghun.ordersimulator.merchant.ActiveMerchantPool
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
@@ -16,6 +17,7 @@ class LoadGenerationService(
     private val state: LoadGenerationState,
     private val loadGenerationJobRepository: LoadGenerationJobRepository,
     private val activeMerchantPool: ActiveMerchantPool,
+    private val randomAddressPicker: RandomAddressPicker,
 ) {
 
     /** count건을 durationMinutes분 동안, 시간축 위에 무작위로 흩뿌려 생성하도록 예약한다. */
@@ -25,6 +27,7 @@ class LoadGenerationService(
         require(durationMinutes > 0) { "생성 시간은 1분 이상이어야 합니다." }
         check(!state.running) { "이미 주문 생성이 진행 중입니다." }
         activeMerchantPool.reload()
+        randomAddressPicker.reload()
 
         val startedAt = Instant.now()
         val durationSeconds = durationMinutes * 60L
@@ -69,8 +72,9 @@ class LoadGenerationService(
             job.endedAt = job.endedAt ?: LocalDateTime.now()
             return
         }
-        // 재시작 복구 경로는 start()를 거치지 않으므로 여기서도 가게 풀을 다시 채운다.
+        // 재시작 복구 경로는 start()를 거치지 않으므로 여기서도 가게 풀과 주소 범위를 다시 채운다.
         activeMerchantPool.reload()
+        randomAddressPicker.reload()
 
         val startedAtInstant = job.startedAt.atZone(ZoneId.systemDefault()).toInstant()
         val durationSeconds = job.durationMinutes * 60L

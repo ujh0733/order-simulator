@@ -1,6 +1,6 @@
 package dev.junghun.ordersimulator.order
 
-import dev.junghun.ordersimulator.address.AddressRepository
+import dev.junghun.ordersimulator.address.RandomAddressPicker
 import dev.junghun.ordersimulator.merchant.ActiveMerchantPool
 import dev.junghun.ordersimulator.merchant.MerchantDeliveryEstimate
 import dev.junghun.ordersimulator.merchant.MerchantDeliveryEstimateRepository
@@ -19,7 +19,7 @@ private const val MIN_DELIVERY_MINUTES = 1
 @Service
 class OrderGeneratorService(
     private val orderRepository: OrderRepository,
-    private val addressRepository: AddressRepository,
+    private val randomAddressPicker: RandomAddressPicker,
     private val merchantRepository: MerchantRepository,
     private val activeMerchantPool: ActiveMerchantPool,
     private val deliveryEstimateRepository: MerchantDeliveryEstimateRepository,
@@ -30,8 +30,7 @@ class OrderGeneratorService(
     // 쓰려면 이 메서드 자체가 트랜잭션 경계를 가져야 한다(open-in-view는 요청 스레드에서만 동작).
     @Transactional
     fun generateOrder(): Order {
-        val address = addressRepository.findRandom()
-            ?: error("생성된 배달주소가 없습니다. 더미 유저/주소를 먼저 만드세요 (seedDummyUsers).")
+        val address = randomAddressPicker.pick()
         // 주문에는 가게 id 참조만 필요해서 SELECT 없는 프록시로 충분하다.
         val merchantId = activeMerchantPool.pickRandomId()
         val merchant = merchantRepository.getReferenceById(merchantId)
