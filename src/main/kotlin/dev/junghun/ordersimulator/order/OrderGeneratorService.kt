@@ -1,6 +1,7 @@
 package dev.junghun.ordersimulator.order
 
 import dev.junghun.ordersimulator.address.AddressRepository
+import dev.junghun.ordersimulator.merchant.ActiveMerchantPool
 import dev.junghun.ordersimulator.merchant.MerchantDeliveryEstimate
 import dev.junghun.ordersimulator.merchant.MerchantDeliveryEstimateRepository
 import dev.junghun.ordersimulator.merchant.MerchantRepository
@@ -20,6 +21,7 @@ class OrderGeneratorService(
     private val orderRepository: OrderRepository,
     private val addressRepository: AddressRepository,
     private val merchantRepository: MerchantRepository,
+    private val activeMerchantPool: ActiveMerchantPool,
     private val deliveryEstimateRepository: MerchantDeliveryEstimateRepository,
     private val orderStatusEventRepository: OrderStatusEventRepository,
 ) {
@@ -30,11 +32,11 @@ class OrderGeneratorService(
     fun generateOrder(): Order {
         val address = addressRepository.findRandom()
             ?: error("생성된 배달주소가 없습니다. 더미 유저/주소를 먼저 만드세요 (seedDummyUsers).")
-        val merchant = merchantRepository.findRandomActive()
-            ?: merchantRepository.findFirstActive()
-            ?: error("영업 중인 가게가 없습니다. 가게 데이터를 먼저 수집하세요 (collectSeoulRestaurants).")
+        // 주문에는 가게 id 참조만 필요해서 SELECT 없는 프록시로 충분하다.
+        val merchantId = activeMerchantPool.pickRandomId()
+        val merchant = merchantRepository.getReferenceById(merchantId)
 
-        val estimate = deliveryEstimateRepository.findByMerchantIdAndRegionId(merchant.id!!, address.region.id!!)
+        val estimate = deliveryEstimateRepository.findByMerchantIdAndRegionId(merchantId, address.region.id!!)
             ?: deliveryEstimateRepository.save(
                 MerchantDeliveryEstimate(
                     merchant = merchant,

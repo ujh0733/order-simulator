@@ -7,24 +7,9 @@ private const val ACTIVE_STATUS_CODE = "01"
 
 interface MerchantRepository : JpaRepository<Merchant, Long> {
 
-    // ORDER BY RAND()는 가게가 53만 건이 되자 전체 정렬 때문에 실측 초당 1건 미만으로 느려졌다.
-    // id 범위를 무작위로 잡고 (business_status_code, id) 인덱스로 그 이후 첫 영업 중 가게를
-    // 찾는 방식으로 바꿨다. 무작위 지점 이후에 영업 중인 가게가 하나도 없는 극히 드문 경우를
-    // 대비해 findFirstActive()로 폴백한다.
-    @Query(
-        value = """
-            SELECT * FROM merchants
-            WHERE business_status_code = '$ACTIVE_STATUS_CODE'
-              AND id >= (SELECT FLOOR(RAND() * (SELECT MAX(id) FROM merchants)) + 1)
-            ORDER BY id LIMIT 1
-        """,
-        nativeQuery = true,
-    )
-    fun findRandomActive(): Merchant?
-
-    @Query(
-        value = "SELECT * FROM merchants WHERE business_status_code = '$ACTIVE_STATUS_CODE' ORDER BY id LIMIT 1",
-        nativeQuery = true,
-    )
-    fun findFirstActive(): Merchant?
+    // 영업 중인 가게를 DB에서 무작위로 뽑으면(WHERE 안의 RAND()) 난수가 행마다 다시 계산돼서 낮은 id로만
+    // 쏠린다. 그래서 id 전체를 한 번만 읽어 앱에서 고른다(ActiveMerchantPool). (business_status_code, id)
+    // 인덱스만으로 읽는 커버링 스캔이라 12만 건도 수십 ms면 끝난다.
+    @Query("SELECT m.id FROM Merchant m WHERE m.businessStatusCode = '$ACTIVE_STATUS_CODE'")
+    fun findActiveIds(): List<Long>
 }
