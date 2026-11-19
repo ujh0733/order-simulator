@@ -15,6 +15,9 @@ build/
 ### Claude Code ###
 .claude/
 
+### 블로그 초안 (커밋하지 않음) ###
+/blog/
+
 ### STS ###
 .apt_generated
 .classpath
