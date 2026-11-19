@@ -12,6 +12,11 @@ interface RegionOrderCount {
     fun getOrderCount(): Long
 }
 
+interface MerchantOrderCount {
+    fun getMerchantId(): Long
+    fun getOrderCount(): Long
+}
+
 interface RegionPairOrderCount {
     fun getCustomerRegionId(): Long
     fun getMerchantRegionId(): Long
@@ -48,20 +53,52 @@ interface OrderRepository : JpaRepository<Order, Long> {
         @Param("to") to: LocalDateTime,
     ): List<RegionPairOrderCount>
 
-    /** 가게의 동시 조리 중 건수 - 용량 제한 체크용. */
-    fun countByMerchantIdAndStatus(merchantId: Long, status: OrderStatus): Long
+    /**
+     * 조리 시작 대상 - 대기(RECEIVED) 주문을 오래된 순으로 가게와 함께 한 번에 읽는다.
+     * 가게마다 따로 조회하지 않도록 가게를 JOIN FETCH 한다. id는 접수 순서대로 증가하므로 id 순이 곧 접수 순이다.
+     */
+    @Query("SELECT o FROM Order o JOIN FETCH o.merchant WHERE o.status = :status ORDER BY o.id")
+    fun findOldestWithMerchantByStatus(@Param("status") status: OrderStatus, pageable: Pageable): List<Order>
 
-    /** 가게에서 대기 중(RECEIVED)인 주문 중 가장 오래된 것 - 조리 시작 대상. */
-    fun findFirstByMerchantIdAndStatusOrderByOrderedAtAsc(merchantId: Long, status: OrderStatus): Order?
+    /** 가게별 상태 건수를 한 번에 센다 - 가게마다 COUNT를 따로 날리지 않기 위해서다. */
+    @Query(
+        """
+        SELECT o.merchant.id AS merchantId, COUNT(o) AS orderCount
+        FROM Order o
+        WHERE o.status = :status AND o.merchant.id IN :merchantIds
+        GROUP BY o.merchant.id
+        """
+    )
+    fun countByMerchantIdsAndStatus(
+        @Param("merchantIds") merchantIds: Collection<Long>,
+        @Param("status") status: OrderStatus,
+    ): List<MerchantOrderCount>
 
-    /** 지금 대기 중인 주문이 있는 가게 목록 - 스케줄러가 이 가게들만 용량 체크하면 된다. */
-    @Query("SELECT DISTINCT o.merchant.id FROM Order o WHERE o.status = :status")
-    fun findDistinctMerchantIdsByStatus(@Param("status") status: OrderStatus): List<Long>
+    /** 조리시간이 다 지나(cookingReadyAt 경과) 배차를 시도해야 하는 주문 - 먼저 준비된 순으로 limit건. */
+    @Query("SELECT o FROM Order o WHERE o.status = :status AND o.cookingReadyAt <= :now ORDER BY o.cookingReadyAt")
+    fun findReadyToDispatch(
+        @Param("status") status: OrderStatus,
+        @Param("now") now: LocalDateTime,
+        pageable: Pageable,
+    ): List<Order>
 
-    /** 가게별 조리시간이 다 지나(cookingReadyAt 경과) 배차를 시도해야 하는 주문들. */
-    fun findByStatusAndCookingReadyAtLessThanEqual(status: OrderStatus, now: LocalDateTime): List<Order>
+    /**
+     * 배달 예상시간이 지난 배차 중(DISPATCHED) 주문만 limit건. 예전에는 배차 중 주문 전체를 읽어서 메모리에서
+     * 걸렀는데, 라이더가 37만 명으로 늘면서 배차 중 주문이 수천 건이 되자 매 tick 그 전체를 읽게 되었다.
+     */
+    @Query(
+        value = """
+        SELECT * FROM orders
+        WHERE status = 'DISPATCHED'
+          AND dispatched_at <= DATE_SUB(:now, INTERVAL estimated_delivery_minutes MINUTE)
+        ORDER BY dispatched_at
+        LIMIT :limit
+        """,
+        nativeQuery = true,
+    )
+    fun findDelivered(@Param("now") now: LocalDateTime, @Param("limit") limit: Int): List<Order>
 
-    /** 라이더 풀(50명) 크기로 자연히 제한되는 소규모 집합이라 전체 조회 후 메모리에서 걸러도 된다. */
+    /** 대시보드의 배송 중 목록에 사용. */
     fun findByStatus(status: OrderStatus): List<Order>
 
     /** 파이프라인 현황판(접수/조리/배차/완료 건수)에 사용. */
